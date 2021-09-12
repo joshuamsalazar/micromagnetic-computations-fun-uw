@@ -3,3 +3,9 @@ import streamlit as st
 # working with sample data.
 import numpy as np
 import pandas as pd
+
+hobby = st.selectbox("Hobbies: ",
+                     ['Dancing', 'Reading', 'Sports'])
+ 
+# print the selected hobby
+st.write("Your hobby is: ", hobby)
