@@ -36,6 +36,12 @@ class Parameters:
     eta = etafield/etadamp
     hext = np.array([1.0 * K1/Js,0,0])
     
+def fields(t,m,p): 
+    #Get the H^{DL} at (t, m, p)
+    Hk = 2 * p.K1/p.Js
+    Hd = p.etadamp * p.currentd * p.hbar/(2*p.e*p.Js*p.d)
+    return (Hk, Hd)
+    
 def f(t, m, p):
     j            = p.currentd * np.cos(2 * 3.1415927 * p.frequency * t)
     prefactorpol = j * p.hbar/(2 * p.e * p.Js * p.d)
