@@ -8,6 +8,7 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 from functools import partial
 import os, sys
+from bokeh.plotting import figure
 
 je = st.selectbox("Current density A [10^01 A/m^2] ",
                      [1, 10, 100])
@@ -283,3 +284,16 @@ def savedata(p, sig, fieldrangeT, name):
         f.write( str(Hs[0]) + '\t' + str(Hs[1]) + "\t" + str(p.etafield/p.etadamp) + "\t" + str(p.d) 
                 + '\t' + str(p.frequency) + '\n')
         f.close()
+
+ def stplot(x, y, xlab, ylab, head, name):
+    p = figure(
+      title=head,
+      x_axis_label=xlab,
+      y_axis_label=ylab)
+    
+    p.line(x, y, legend_label = name, line_width=2)
+    plot = st.bokeh_chart(p, use_container_width=True)
+    return plot
+  
+  stplot(fieldrangeT, signal2w, "H_ext", "V2w", "Harmonics", "line")
+    
