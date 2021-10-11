@@ -285,7 +285,7 @@ def savedata(p, sig, fieldrangeT, name):
                 + '\t' + str(p.frequency) + '\n')
         f.close()
 
- def stplot(x, y, xlab, ylab, head, name):
+def stplot(x, y, xlab, ylab, head, name):
     p = figure(
       title=head,
       x_axis_label=xlab,
