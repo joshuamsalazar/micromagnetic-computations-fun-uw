@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 from functools import partial
 import os, sys
 
-hobby = st.selectbox("Hobbies: ",
-                     ['Dancing', 'Reading', 'Sports'])
+hobby = st.selectbox("Current density A [10^01 A/m^2] ",
+                     [1, 10, 100])
  
 # print the selected hobby
 st.write("Your hobby is: ", hobby)
@@ -25,7 +25,7 @@ class Parameters:
     RAHE = 0.65 
     d = (0.6+1.2+1.1) * 1e-9      
     frequency = 0.1e9
-    currentd = float(sys.argv[1]) * 1e10
+    currentd = je * 1e10
     hbar = 1.054571e-34
     e = 1.602176634e-19
     mu0 = 4 * 3.1415927 * 1e-7
