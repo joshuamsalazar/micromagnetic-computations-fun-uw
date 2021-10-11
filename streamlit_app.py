@@ -35,3 +35,15 @@ class Parameters:
     etafield = 0.008   # etafield/etadamp=eta
     eta = etafield/etadamp
     hext = np.array([1.0 * K1/Js,0,0])
+    
+def f(t, m, p):
+    j            = p.currentd * np.cos(2 * 3.1415927 * p.frequency * t)
+    prefactorpol = j * p.hbar/(2 * p.e * p.Js * p.d)
+    hani         = 2 * p.K1/p.Js * p.easy_axis * np.dot(p.easy_axis,m)
+    h            = p.hext+hani
+    H            = - prefactorpol * (p.etadamp * np.cross(p.p_axis,m) + p.etafield * p.p_axis)
+    mxh          = np.cross(     m,  h-prefactorpol*( p.etadamp * np.cross(p.p_axis,m) + p.etafield * p.p_axis )    ) #Corrected from Dieter
+    mxmxh        = np.cross(     m,  mxh) 
+    rhs          = - p.gamma/(1+p.alpha**2) * mxh-p.gamma * p.alpha/(1+p.alpha**2) * mxmxh  
+    p.result.append([t,m[0],m[1],m[2],H[0],H[1],H[2]])
+    return [rhs]
