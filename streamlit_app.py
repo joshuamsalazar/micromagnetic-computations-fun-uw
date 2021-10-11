@@ -36,6 +36,33 @@ class Parameters:
     eta = etafield/etadamp
     hext = np.array([1.0 * K1/Js,0,0])
     
+def lockin(sig, t, f, ph):
+    ref = np.cos(2 * 2*np.pi*f*t + ph/180.0*np.pi)
+    #ref = np.sin(2*np.pi*f*t + ph/180.0*np.pi)
+    comp = np.multiply(sig,ref)
+    #print(t[-1]) #plot real part fft 
+    return comp.mean()*2
+
+def fft(sig, t, f):
+    sample_dt = np.mean(np.diff(t))
+    N = len(t)
+    yfft = np.fft.rfft(sig)
+    yfft_abs = np.abs(yfft) #!!!
+    xfft = np.array(np.fft.rfftfreq(N, d=sample_dt))
+
+    stride =max(int(2*f*0.1*sample_dt),2)
+    idxF = np.argmin(np.abs(xfft-2*f))
+
+    tmpmax = 0
+    tmpj = 0
+    for j in range(-stride, stride+1):
+        if yfft_abs[idxF+j] > tmpmax:
+            tmpmax = yfft_abs[idxF+j]
+            tmpj = j
+
+    idxF = idxF+tmpj
+    return 2./N*(yfft.real[idxF])
+    
 def fields(t,m,p): 
     #Get the H^{DL} at (t, m, p)
     Hk = 2 * p.K1/p.Js
