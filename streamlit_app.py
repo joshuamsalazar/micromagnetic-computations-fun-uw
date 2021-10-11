@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 from functools import partial
 import os, sys
 
-hobby = st.selectbox("Current density A [10^01 A/m^2] ",
+je = st.selectbox("Current density A [10^01 A/m^2] ",
                      [1, 10, 100])
  
 # print the selected hobby
-st.write("Your hobby is: ", hobby)
+st.write("Your current density is: ", je)
 
 periSampl = 1000
 
