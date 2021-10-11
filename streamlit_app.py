@@ -3,6 +3,11 @@ import streamlit as st
 # working with sample data.
 import numpy as np
 import pandas as pd
+from scipy.integrate import *
+import scipy.optimize
+import matplotlib.pyplot as plt
+from functools import partial
+import os, sys
 
 hobby = st.selectbox("Hobbies: ",
                      ['Dancing', 'Reading', 'Sports'])
