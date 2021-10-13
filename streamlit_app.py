@@ -8,7 +8,6 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 from functools import partial
 import os, sys
-from bokeh.plotting import figure, show
 
 st.sidebar.markdown("## Parameters used in the simulation")
 st.sidebar.markdown("Enter your own custom values to run the model")
