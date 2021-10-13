@@ -350,10 +350,10 @@ st.latex(r'''
    ''')
 st.write(r"As the system starts fully pointing in the z direction, it is important to simulate the electric current with a cosine wave $J_x=j_e \cos(\omega t)$. ")
 
-if st.checkbox("_Show relaxation of magnetization_", True):
-    selected_field = st.select_slider('_Check the trajectories for an specific field value [A/m]_',
+if st.checkbox("Show relaxation of magnetization", True):
+    selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
                     options = fieldrange.tolist())
-    st.write("_Field value equivalent to_", str( round(selected_field*paramters.mu0, 3) ), "[T]")
+    st.write("Field value equivalent to", str( round(selected_field*paramters.mu0, 3) ), "[T]")
 
     s_index = fieldrange.tolist().index(selected_field)
 
