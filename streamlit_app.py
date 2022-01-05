@@ -322,7 +322,7 @@ st.image("https://journals.aps.org/prb/article/10.1103/PhysRevB.89.144425/figure
         width   = 400 )
 #($\eta_\text{DL}$ and $\eta_\text{FL}$)
 st.write(r'The LLG equation employed in the model is in explicit form and takes the Slonczewsky spin-orbit-torque coefficients as input. It goes as follows:')
-st.latex(r''' \frac{\partial \vec{m}}{\partial t} =
+st.latex(r''' \frac{\partial \vec{m}}{\partial t} = -
    \frac{\gamma}{1+\alpha^2} (\vec{m} \times \vec{H}_{\text{eff}}) - 
    \frac{\gamma \alpha}{1+\alpha^2} \:\vec{m} \times (\vec{m} \times \vec{H}_{\text{eff}})''')
 st.write(r'Where $m$ represents the mgnetization unit vector, $\alpha$ the Gilbert damping constant, $\gamma$ the gyromagnetic ratio, and $\vec{H}_{\text{eff}}$ is the effective magnetic field. The effective magnetic field contains contributions of the applied external field, the effective anisotropy field, and the current induced fields via spin orbit torque effects. It reads as follows:')
