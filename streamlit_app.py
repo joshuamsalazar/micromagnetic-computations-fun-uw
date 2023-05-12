@@ -353,7 +353,7 @@ def graphm(t, mx, my, mz, xlab, ylab, plthead):
 
 st.title('Magnetization dynamics for FM/HM interfaces, a single-spin model')
 st.header('Online LLG integrator')
-st.caption("Joshua Salazar, Sabri Koraltan, Harald Özelt, Dieter Suess")
+st.caption("Joshua Salazar, S. Koraltan, C. Abert, P. Flauger, M. Agrawal, S. Zeilinger, A. Satz, C. Schmitt, G. Jakob, R. Gupta, M. Kläui, H. Brückl, J. Güttinger and Dieter Suess")
 st.caption("Physics of Functional Materials")
 st.caption("University of Vienna")
 
