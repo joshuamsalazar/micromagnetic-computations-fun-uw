@@ -10,7 +10,7 @@ from functools import partial
 import os, sys
 
 with st.sidebar: #inputs
-    hextdir = st.radio("Chose an external field sweep direction", ("x","y","z"))
+    hextdir = st.radio("Chose an external field sweep direction (bug)", ("x","y","z"))
     form = st.form("Parameters")
     form.markdown("## Parameters for LLG")
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
