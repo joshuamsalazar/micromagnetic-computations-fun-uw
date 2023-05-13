@@ -43,7 +43,7 @@ Parameters = {
     "mu0" : 4 * 3.1415927 * 1e-7,
     "easy_axis" : np.array([0,0,1]),
     "p_axis" : np.array([0,-1,0]),
-    "etadamp"    : etadamp,    
+    "etadamp"    : etadamp,    #Equiv to hall angle
     "etafield"   : etafield               # etafield/etadamp=eta
     }
     
