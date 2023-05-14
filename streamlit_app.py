@@ -7,7 +7,6 @@ from scipy.integrate import *
 import scipy.optimize
 import matplotlib.pyplot as plt
 from functools import partial
-import os, sys
 
 with st.sidebar: #inputs
     hextdir = st.radio("Chose an external field sweep direction (bug)", ("x","y","z"))
@@ -26,10 +25,9 @@ with st.sidebar: #inputs
     etafield = float(form.text_input('Field like torque term', 0.008))
     #form.form_submit_button("Submit")
 
-
 periSampl = 1000 #
 
-Parameters = {
+Parameters = { #Convert to python class, but how to hash it? 
     "gamma" : 2.2128e5,
     "alpha" : alpha,
     "K1" : K1,  
@@ -47,10 +45,11 @@ Parameters = {
     "etafield"   : etafield               # etafield/etadamp=eta
     }
     
-Parameters["eta"] = Parameters["etafield"]/Parameters["etadamp"]
-Parameters["hext"] = np.array([1.0 * Parameters["K1"]/Parameters["Js"],0,0])
+Parameters["eta"] = Parameters["etafield"]/Parameters["etadamp"]    #Eta is the ratio of the field like torque term to the damping like torque term.
+Parameters["hext"] = np.array([1.0 * Parameters["K1"]/Parameters["Js"],0,0])    #Sample external field in x direction
 
 def lockin(sig, t, f, ph):
+    '''Lock in function for a signal sig(t) at frequency f with phase ph'''
     ref = np.cos(2 * 2*np.pi*f*t + ph/180.0*np.pi)
     #ref = np.sin(2*np.pi*f*t + ph/180.0*np.pi)
     comp = np.multiply(sig,ref)
@@ -58,6 +57,7 @@ def lockin(sig, t, f, ph):
     return comp.mean()*2
 
 def fft(sig, t, f):
+    '''FFT function for a signal sig(t) at frequency f. Deprecated. Use sin-cos fit instead.'''
     sample_dt = np.mean(np.diff(t))
     N = len(t)
     yfft = np.fft.rfft(sig)
@@ -84,7 +84,7 @@ def fields(t,m,p):
     return (Hk, Hd)
     
 def f(t, m, p):
-    j            = p["currentd"] * np.cos(2 * 3.1415927 * p["frequency"] * t)
+    j            = p["currentd"] * np.sin(2 * 3.1415927 * p["frequency"] * t)
     prefactorpol = j * p["hbar"]/(2 * p["e"] * p["Js"] * p["d"])
     hani         = 2 * p["K1"]/p["Js"] * p["easy_axis"] * np.dot(p["easy_axis"],m)
     h            = p["hext"]+hani
@@ -116,13 +116,11 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
         magList[1].append(mag[0])
         magList[2].append(mag[1])
         magList[3].append(mag[2])
-        #testSignal.append(   23  * np.cos(2 * 2 * np.pi * paramters_.["frequency"] * r.t) )
         #Computing the H^{DL} at each time step
         Hs = fields(r.t,mag,paramters_)
         count += 1
         #if count%100 == 0: print(count)
     magList = np.array(magList)
-    #print(magList[0][0], magList[0][-1] )
     return(r.t,magList,Hs, testSignal)
   
   
@@ -165,12 +163,6 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     
     #nR2w           = np.fft.fft(magList[3], 2)/2
     nR2w           = lockin( voltage/params["currentd"], magList[0][periSampl:], params["frequency"], 90)
-    #Checking the magnetization time evolution at each external field value:
-    
-    #plt.plot(time, magList[1], label = 'mx')
-    #plt.plot(time, magList[2], label = 'my')
-    #plt.plot(time, magList[3][periSampl:], label = 'mz tree periods')
-    #plt.plot(magList[0], magList[3], label = 'mz_full period')
     #plt.title("H_x = " + str(params.hext[0]*params.mu0) + "[T]" )
     #plt.legend()
     #plt.show()
