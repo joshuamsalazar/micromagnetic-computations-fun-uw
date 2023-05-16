@@ -1,10 +1,7 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
 from scipy.integrate import *
-import scipy.optimize
 import matplotlib.pyplot as plt
-from functools import partial
 from streamlit_app_page_functions import *
 
 @st.cache_data
@@ -21,7 +18,7 @@ with st.sidebar: #inputs
     form = st.form("Parameters")
     form.markdown("## Parameters for LLG")
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
-    form.form_submit_button("Submit")
+    form.form_submit_button("Submit and run model.")
     alpha = float(form.text_input('Gilbert damping constant', 1))
     je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))
     K1 = float(form.text_input('Anisotropy constant K_1 [J/m^3]', 1.5 * 9100))
@@ -126,7 +123,7 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
         magList[3].append(mag[2])
         #Computing the H^{DL} at each time step
         Hs = fields(r.t,mag,paramters_)
-        count += 1
+        count += 1 #OLD: XXX
         #if count%100 == 0: print(count)
     magList = np.array(magList)
     return(r.t,magList,Hs, testSignal)
@@ -139,7 +136,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     time              = np.array( magList[0] )
     sinwt             = np.sin(     2 * 3.1415927 * params["frequency"] * time)
     cos2wt            = np.cos( 2 * 2 * 3.1415927 * params["frequency"] * time)
-    current           = params["currentd"] * np.cos(2 * 3.1415927 * params["frequency"] * time)
+    current           = params["currentd"] * np.sin(2 * 3.1415927 * params["frequency"] * time)
     # time steps array creation
     z=0
     dt=[]
@@ -193,7 +190,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     #H_eff = print(npresults[-1,4],npresults[-1,5],npresults[-1,6])
     #return(R1w,R2w,npresults[-1,4],npresults[-1,5],npresults[-1,6],npresults[-1,1],npresults[-1,2],npresults[-1,3], Hs, nR2w, lR2w, fR2w)
     return(R1w,R2w, 
-           magList[0], # ZZZ re-write function to save memory (duplicated time array)
+           magList[0], # ZZZ re-write function to save memory (duplicated time array) OLD: XXX
            npresults[:,4],npresults[:,5],npresults[:,6],
            magList[1], magList[2], magList[3],
            Hs, nR2w, lR2w, fR2w)
@@ -217,7 +214,8 @@ orgdensity = paramters["currentd"]
 
 longitudinalSweep = True
 rotationalSweep = False
-fieldrange = np.linspace(-0.1/paramters["mu0"],     0.1/paramters["mu0"],    num = n )
+hextamplitude = 0.1/paramters["mu0"]
+fieldrange = np.linspace( -hextamplitude, hextamplitude, num = n )
 
 @st.cache_data(persist=True)
 def longSweep(t0_,t1_,dt_,params,hextdir):
@@ -232,7 +230,7 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
             elif hextdir == "z":
                 paramters["hext"] = np.array([0,0,i])
             elif hextdir == "custom":
-                paramters["hext"] = customdir   #np.array([i[0],i[1],i[2]]) #Maybe 
+                paramters["hext"] = customdir   #np.array([i[0],i[1],i[2]]) #Maybe Crashes the app!!! XXX 
             initm=[0,0,1]
             initm=np.array(initm)/np.linalg.norm(initm)
             R1w,R2w, t,hx,hy,hz, mx,my,mz, Hs, nR2w, lR2w, fR2w = calc_w1andw2(m0_=initm,
@@ -352,11 +350,7 @@ def graphm(t, mx, my, mz, xlab, ylab, plthead):
    plt.legend()
    return fig
 
-st.title('Magnetization dynamics for FM/HM interfaces, a single-spin model')
-st.header('Online LLG integrator')
-st.caption("Joshua Salazar, S. Koraltan, C. Abert, P. Flauger, M. Agrawal, S. Zeilinger, A. Satz, C. Schmitt, G. Jakob, R. Gupta, M. Kläui, H. Brückl, J. Güttinger and Dieter Suess")
-st.caption("Physics of Functional Materials")
-st.caption("University of Vienna")
+
 
 if st.checkbox("Show relaxation of magnetization", True):
     selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
@@ -389,7 +383,6 @@ figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_x$ (T)', r'$m_i$', 
 
 #st.pyplot(figv1w)
 #st.pyplot(figv2w)
-
 
 st.pyplot(figahe)
 st.pyplot(figamr)
