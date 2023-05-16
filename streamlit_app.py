@@ -7,8 +7,17 @@ import matplotlib.pyplot as plt
 from functools import partial
 from streamlit_app_page_functions import *
 
+@st.cache_data
+def text_to_vector(text):
+    text = text.replace("(","")
+    text = text.replace(")","")
+    print(np.array([float(s) for s in text.split(',')]))
+    return np.array([float(s) for s in text.split(',')])
+
 with st.sidebar: #inputs
-    hextdir = st.radio("Chose an external field sweep direction (bug)", ("x","y","z"))
+    customdir = st.text_input("Chose an external field sweep direction", "(1,0,0)")
+    text_to_vector(customdir)
+    hextdir = st.radio("Or any cartesian direction", ("x","y","z","custom"))
     form = st.form("Parameters")
     form.markdown("## Parameters for LLG")
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
@@ -209,7 +218,6 @@ orgdensity = paramters["currentd"]
 longitudinalSweep = True
 rotationalSweep = False
 fieldrange = np.linspace(-0.1/paramters["mu0"],     0.1/paramters["mu0"],    num = n )
-print(hextdir, "############")
 
 @st.cache_data(persist=True)
 def longSweep(t0_,t1_,dt_,params,hextdir):
@@ -223,6 +231,8 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
                 paramters["hext"] = np.array([0,i,0])
             elif hextdir == "z":
                 paramters["hext"] = np.array([0,0,i])
+            elif hextdir == "custom":
+                paramters["hext"] = customdir   #np.array([i[0],i[1],i[2]]) #Maybe 
             initm=[0,0,1]
             initm=np.array(initm)/np.linalg.norm(initm)
             R1w,R2w, t,hx,hy,hz, mx,my,mz, Hs, nR2w, lR2w, fR2w = calc_w1andw2(m0_=initm,
