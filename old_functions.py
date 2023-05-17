@@ -3,7 +3,6 @@ import numpy as np
 from scipy.integrate import *
 import matplotlib.pyplot as plt
 from streamlit_app_page_functions import *
-from scipy.optimize import curve_fit
 
 header()
 
@@ -25,6 +24,7 @@ def text_to_vector(text):
 with st.sidebar: #inputs
     customdir = st.text_input("Chose an external field sweep direction", "(1,0,0)")
     text_to_vector(customdir)
+    
     hextdir = st.radio("Or any cartesian direction", ("x","y","z","custom"))
     form = st.form("Parameters")
     form.markdown("## Parameters for LLG")
@@ -48,9 +48,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "alpha" : alpha,
     "K1" : K1,  
     "Js" : Js,
-    "RAHE" : RAHE,
-    "RPHE" : 0,
-    "RAMR" : 0,
+    "RAHE" : RAHE ,
     "d" : d,    
     "frequency" : frequency,
     "currentd" : je * 1e10,
@@ -60,12 +58,47 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "easy_axis" : np.array([0,0,1]),
     "p_axis" : np.array([0,-1,0]),
     "etadamp"    : etadamp,    
-    "etafield"   : etafield,               # etafield/etadamp=eta
-    "hext" : np.array([0,0,0]),
-    "omega" : 2 * np.pi * frequency,
-    "area" : 1e-6 * 1e-6,
+    "etafield"   : etafield               # etafield/etadamp=eta
     }
+    
+Parameters["eta"] = Parameters["etafield"]/Parameters["etadamp"]    #Eta is the ratio of the field like torque term to the damping like torque term.
+Parameters["hext"] = np.array([1.0 * Parameters["K1"]/Parameters["Js"],0,0])    #Sample external field in x direction
 
+def lockin(sig, t, f, ph):
+    '''Lock in function for a signal sig(t) at frequency f with phase ph'''
+    ref = np.cos(2 * 2*np.pi*f*t + ph/180.0*np.pi)
+    #ref = np.sin(2*np.pi*f*t + ph/180.0*np.pi)
+    comp = np.multiply(sig,ref)
+    #print(t[-1]) #plot real part fft 
+    return comp.mean()*2
+
+def fft(sig, t, f):
+    '''FFT function for a signal sig(t) at frequency f. Deprecated. Use sin-cos fit instead.'''
+    sample_dt = np.mean(np.diff(t))
+    N = len(t)
+    yfft = np.fft.rfft(sig)
+    yfft_abs = np.abs(yfft) #!!!
+    xfft = np.array(np.fft.rfftfreq(N, d=sample_dt))
+
+    stride =max(int(2*f*0.1*sample_dt),2)
+    idxF = np.argmin(np.abs(xfft-2*f))
+
+    tmpmax = 0
+    tmpj = 0
+    for j in range(-stride, stride+1):
+        if yfft_abs[idxF+j] > tmpmax:
+            tmpmax = yfft_abs[idxF+j]
+            tmpj = j
+
+    idxF = idxF+tmpj
+    return 2./N*(yfft.real[idxF])
+    
+def fields(t,m,p): 
+    #Get the H^{DL} at (t, m, p)
+    Hk = 2 * p["K1"]/p["Js"]
+    Hd = p["etadamp"] * p["currentd"] * p["hbar"]/(2*p["e"]*p["Js"]*p["d"])
+    return (Hk, Hd)
+    
 def f(t, m, p):
     j            = p["currentd"] * np.sin(2 * 3.1415927 * p["frequency"] * t)
     prefactorpol = j * p["hbar"]/(2 * p["e"] * p["Js"] * p["d"])
@@ -75,12 +108,10 @@ def f(t, m, p):
     mxh          = np.cross(     m,  h-prefactorpol*( p["etadamp"] * np.cross(p["p_axis"],m) + p["etafield"] * p["p_axis"] )    ) #Corrected from Dieter
     mxmxh        = np.cross(     m,  mxh) 
     rhs          = - p["gamma"]/(1+p["alpha"]**2) * mxh-p["gamma"] * p["alpha"]/(1+p["alpha"]**2) * mxmxh 
+    p["result"].append([t,m[0],m[1],m[2],H[0],H[1],H[2]])
     return [rhs]
 
-def fourier_model(t,v0,v1,v2):
-    w = 2 * np.pi * 0.1e9 # PENDING: frequency input
-    return v0 + v1*np.sin(w*t) + v2*np.cos(2*w*t)
-
+ 
 def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
     t0 = t0_
     m0 = m0_
@@ -88,8 +119,11 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
     r = ode(f).set_integrator('vode', method='bdf',atol=1e-14,nsteps =500000)
     r.set_initial_value(m0_, t0_).set_f_params(paramters_).set_jac_params(2.0)
     t1 = t1_
+    #Creating a counter and an array to store the magnetization directions
+    count = 0
     magList = [[],[],[],[]] 
-    while r.successful() and r.t < t1:
+    testSignal = []
+    while r.successful() and r.t < t1: # and count < (periSampl + 1):  #OLD: XXX 
         #To make sure the steps are equally spaced 
         #Hayashi et al. (2014), after eqn 45, suggests to divide one period into
         # 200 time steps to get accurate temporal variation of Hall voltages
@@ -98,31 +132,83 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
         magList[1].append(mag[0])
         magList[2].append(mag[1])
         magList[3].append(mag[2])
-    return np.array(magList[0]), np.array(magList[1:])
-
+        #Computing the H^{DL} at each time step
+        Hs = fields(r.t,mag,paramters_)
+        count += 1 #OLD: XXX
+        #if count%100 == 0: print(count)
+    magList = np.array(magList)
+    return(magList,Hs, testSignal)
+  
+  
 def calc_w1andw2(m0_,t0_,t1_,dt_,params): 
-    params["currentd"] = 0
-    timeRx, magRx = calc_equilibrium(m0_,t0_,t1_,dt_,params) #Computing equilibrium without current
-    params["currentd"] = je * 1e10
-    time, m = calc_equilibrium(m0_,t0_,t1_,dt_,params)
-
-    sinwt = np.sin( params["omega"] * time)
-    cos2wt = np.cos( 2 * params["omega"] * time)
-    ac = params["currentd"] * sinwt 
-
+    params["result"] = []
+    magList, Hs, testSignal    = calc_equilibrium(m0_,t0_,t1_,dt_,params)
+    npresults         = np.array(params["result"])
+    time              = np.array( magList[0] )
+    sinwt             = np.sin(     2 * 3.1415927 * params["frequency"] * time)
+    cos2wt            = np.cos( 2 * 2 * 3.1415927 * params["frequency"] * time)
+    current           = params["currentd"] * np.sin(2 * 3.1415927 * params["frequency"] * time)
+    # time steps array creation
+    z=0
+    dt=[]
+    dt.append(time[1]-time[0])
+    for i in time: 
+        if z>0:
+            dt.append(time[z]-time[z-1])
+        z=z+1
+    dt=np.array(dt)
     #Computing the voltage from R_{AHE}
-    voltage = ac * m[2] * params["RAHE"] * params["area"] # V_xy = R_{AHE} * J_e * m_z * A 
-    voltagexx = ac * m[0]**2 * params["RAMR"]
-    [R0,R1w,R2w], _ = curve_fit(fourier_model, time, voltage)
-    [R0xx,R1wxx,R2wxx], _ = curve_fit(fourier_model, time, voltagexx)
+    voltage         = current * magList[3] * params["RAHE"]  * (2e-6 * 6e-9)
+    voltage         = voltage[periSampl:]
+    current         = current[periSampl:]
+    time            = time[periSampl:]
+    sinwt           = sinwt[periSampl:]
+    cos2wt          = cos2wt[periSampl:]
+    dt              = dt[periSampl:]
+
+    #nR2w            = np.sum(voltage/params["currentd"] * cos2wt * dt)*(2/time[-1])
+    R1w             = np.sum(voltage * sinwt  * dt)*(2 / (time[-1]*(3/4)) )
+    R2w             = np.sum(voltage * cos2wt * dt)*(2 / (time[-1]*(3/4)) )
+    #R2w             = np.sum(testSignal[periSampl:] * cos2wt * dt)*(2 / (time[-1]*(3/4)) )
+    
+    #R1w            = np["d"]ot( voltage * dt,sinwt  )/( np["d"]ot(sinwt * dt,sinwt) * params["currentd"])
+    #nR2w            = np["d"]ot( voltage * dt,cos2wt )/( np["d"]ot(cos2wt * dt, cos2wt) * params["currentd"])
+    
+    fR2w           = fft( voltage, magList[0][periSampl:], params["frequency"])
+    lR2w           = lockin( voltage, magList[0][periSampl:], params["frequency"], 0)
+    
+    #nR2w           = np.fft.fft(magList[3], 2)/2
+    nR2w           = lockin( voltage/params["currentd"], magList[0][periSampl:], params["frequency"], 90)
+    #plt.title("H_x = " + str(params.hext[0]*params.mu0) + "[T]" )
+    #plt.legend()
+    #plt.show()
+    #plt.plot(time, mzlowfield(time, params), label = 'test')
+    #plt.plot(time, np.full(time.shape, sum(magList[1]) / len(magList[1]) ), label = 'mx')
+    #plt.plot(time, np.full(time.shape, sum(magList[2]) / len(magList[2]) ), label = 'my')
+    #plt.plot(time, np.full(time.shape, sum(magList[3]) / len(magList[3]) ), label = 'mz')
+    #plt.plot(time, testSignal, label = 'cos(X)')
+    #plt.plot(time, voltage, label = 'cos(X)')
+
+    #Checking the current-induced fields time evolution at each external field value:
+    
+    #plt.plot(time, npresults[:,4], label = 'Hx')
+    #plt.plot(time, npresults[:,5], label = 'Hy')
+    #plt.plot(time, npresults[:,6], label = 'Hz')
+    #plt.legend()
+    #plt.show()
+    
+    #Final value of the current-induced field
+    #H_eff = print(npresults[-1,4],npresults[-1,5],npresults[-1,6])
+    #return(R1w,R2w,npresults[-1,4],npresults[-1,5],npresults[-1,6],npresults[-1,1],npresults[-1,2],npresults[-1,3], Hs, nR2w, lR2w, fR2w)
     return(R1w,R2w, 
-           time, # ZZZ re-write function to save memory (duplicated time array) OLD: XXX
-           0, 0, 0,
-           m[0],m[1],m[2])
+           magList[0], # ZZZ re-write function to save memory (duplicated time array) OLD: XXX
+           npresults[:,4],npresults[:,5],npresults[:,6],
+           magList[1], magList[2], magList[3],
+           Hs, nR2w, lR2w, fR2w)
     
 paramters = Parameters
 n = 21
-phirange   = np.linspace(-np.pi/2, np.pi*3/2, num=n)
+phirange   = np.linspace(-np.pi/2,           np.pi*3/2,         num=n)
 signalw  = []
 signal2w  = []
 nsignal2w = []
@@ -157,11 +243,10 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
             elif hextdir == "custom":
                 customdir=text_to_vector(customdir)
                 customdir/=np.linalg.norm(customdir)
-                print("Custom direction: ", customdir)
                 paramters["hext"] = i*customdir   #np.array([i[0],i[1],i[2]]) #Maybe Crashes the app!!! XXX 
             initm=[0,0,1]
             initm=np.array(initm)/np.linalg.norm(initm)
-            R1w,R2w, t,hx,hy,hz, mx,my,mz = calc_w1andw2(m0_=initm,
+            R1w,R2w, t,hx,hy,hz, mx,my,mz, Hs, nR2w, lR2w, fR2w = calc_w1andw2(m0_=initm,
                                                                             t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(periSampl * paramters["frequency"]),
@@ -180,18 +265,22 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
             fieldrangeT.append(i * paramters["mu0"])
             signalw.append(R1w)
             signal2w.append(R2w)
+            nsignal2w.append(nR2w)
+            lsignal2w.append(lR2w)
+            fsignal2w.append(fR2w)
             phirangeRad.append(0)
+            
             #AHE & AMR
             paramters["currentd"] = -paramters["currentd"]
-            _, imagList  = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(periSampl * paramters["frequency"]), paramters_=paramters)
+            imagList, _, _   = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(periSampl * paramters["frequency"]), paramters_=paramters)
             
-            aheList.append(mz[-1]-imagList[2][-1])
+            aheList.append(mz[-1]-imagList[3][-1])
             amrList.append(mx[-1]*mx[-1])
             smrList.append(my[-1]*my[-1])
         
         #Live prompt
         #print(i, R1w, R2w, '\tHk,Hd', round(Hs[0]), round(Hs[1]), mx[-1], my[-1], mz[-1])
-        return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList
+        return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, nsignal2w, lsignal2w, fsignal2w, aheList, amrList, smrList
 signalw  = []
 signal2w  = []
 nsignal2w = []
@@ -205,7 +294,7 @@ aheList, amrList = [[],[]]
 fieldrangeT =[]
 phirangeRad=[]
 
-timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList = longSweep(t0_=0,
+timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, nsignal2w, lsignal2w, fsignal2w, aheList, amrList, smrList = longSweep(t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(periSampl * paramters["frequency"]),
                                                                             params=paramters, hextdir=hextdir)
@@ -254,6 +343,27 @@ def savedata(p, sig, fieldrangeT, name):
         f.write( str(Hs[0]) + '\t' + str(Hs[1]) + "\t" + str(p["etafield"]/p["etadamp"]) + "\t" + str(p["d"]) 
                 + '\t' + str(p["frequency"]) + '\n')
         f.close()
+
+def graph(x, y, xlab, ylab, pltlabel, plthead):
+   fig, ax = plt.subplots()
+   plt.plot(x, y, label = pltlabel)
+   ax.set(xlabel = xlab, ylabel = ylab)
+   plt.title(plthead)
+   plt.legend()
+   return fig
+
+def graphm(t, mx, my, mz, xlab, ylab, plthead):
+   fig, ax = plt.subplots()
+   plt.plot(t, mx, label = r'$x$')
+   plt.plot(t, my, label = r'$y$')
+   plt.plot(t, mz, label = r'$z$')
+   ax.set(xlabel = xlab, ylabel = ylab)
+   ax.set_ylim([-1.05,1.05])
+   plt.title(plthead)
+   plt.legend()
+   return fig
+
+
 
 if st.checkbox("Show relaxation of magnetization", True):
     selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
