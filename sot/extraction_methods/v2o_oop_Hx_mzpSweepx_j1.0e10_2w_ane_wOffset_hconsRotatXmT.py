@@ -195,7 +195,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,paramters_):
     DHdc                = np.array(paramters_.DHEvol)
     paramters_.currentd = orgdensity                                                        #Returning to the original current
     #input("LLG wo/AC solved, press enter to continue")
-
+    print(magListdc[1:,-1].shape)
     reset_results(paramters_)
     magList = calc_equilibrium(magListdc[1:,-1],t0_,t1_,dt_,paramters_)                                #Solving the LLG with AC current
     t                 = np.array(paramters_.tEvol)

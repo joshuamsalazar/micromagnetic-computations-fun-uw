@@ -183,9 +183,9 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
             phirangeRad.append(0)
             #AHE & AMR
             paramters["currentd"] = -paramters["currentd"]
-            _, imagList  = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(periSampl * paramters["frequency"]), paramters_=paramters)
+            imagList  = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(periSampl * paramters["frequency"]), paramters_=paramters)
             
-            aheList.append(mz[-1]-imagList[2][-1])
+            aheList.append(mz[-1]-imagList[3][-1])
             amrList.append(mx[-1]*mx[-1])
             smrList.append(my[-1]*my[-1])
         

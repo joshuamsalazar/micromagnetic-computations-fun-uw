@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt 
 from streamlit_app_functions.theoretical_description import text as text_theoretical_description
@@ -62,3 +63,14 @@ def fft(sig, t, f):
 
     idxF = idxF+tmpj
     return 2./N*(yfft.real[idxF])
+
+#fR2w           = fft( voltage, magList[0][periSampl:], params["frequency"])
+#lR2w           = lockin( voltage, magList[0][periSampl:], params["frequency"], 0)
+#nR2w           = lockin( voltage/params["currentd"], magList[0][periSampl:], params["frequency"], 90)
+
+def fields(t,m,p): 
+    #Get the H^{DL} at (t, m, p)
+    Hk = 2 * p["K1"]/p["Js"]
+    Hd = p["etadamp"] * p["currentd"] * p["hbar"]/(2*p["e"]*p["Js"]*p["d"])
+    return (Hk, Hd)
+    
