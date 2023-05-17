@@ -64,7 +64,34 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
 Parameters["eta"] = Parameters["etafield"]/Parameters["etadamp"]    #Eta is the ratio of the field like torque term to the damping like torque term.
 Parameters["hext"] = np.array([1.0 * Parameters["K1"]/Parameters["Js"],0,0])    #Sample external field in x direction
 
+def lockin(sig, t, f, ph):
+    '''Lock in function for a signal sig(t) at frequency f with phase ph'''
+    ref = np.cos(2 * 2*np.pi*f*t + ph/180.0*np.pi)
+    #ref = np.sin(2*np.pi*f*t + ph/180.0*np.pi)
+    comp = np.multiply(sig,ref)
+    #print(t[-1]) #plot real part fft 
+    return comp.mean()*2
 
+def fft(sig, t, f):
+    '''FFT function for a signal sig(t) at frequency f. Deprecated. Use sin-cos fit instead.'''
+    sample_dt = np.mean(np.diff(t))
+    N = len(t)
+    yfft = np.fft.rfft(sig)
+    yfft_abs = np.abs(yfft) #!!!
+    xfft = np.array(np.fft.rfftfreq(N, d=sample_dt))
+
+    stride =max(int(2*f*0.1*sample_dt),2)
+    idxF = np.argmin(np.abs(xfft-2*f))
+
+    tmpmax = 0
+    tmpj = 0
+    for j in range(-stride, stride+1):
+        if yfft_abs[idxF+j] > tmpmax:
+            tmpmax = yfft_abs[idxF+j]
+            tmpj = j
+
+    idxF = idxF+tmpj
+    return 2./N*(yfft.real[idxF])
     
 def fields(t,m,p): 
     #Get the H^{DL} at (t, m, p)
@@ -138,11 +165,41 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     sinwt           = sinwt[periSampl:]
     cos2wt          = cos2wt[periSampl:]
     dt              = dt[periSampl:]
+
+    #nR2w            = np.sum(voltage/params["currentd"] * cos2wt * dt)*(2/time[-1])
     R1w             = np.sum(voltage * sinwt  * dt)*(2 / (time[-1]*(3/4)) )
     R2w             = np.sum(voltage * cos2wt * dt)*(2 / (time[-1]*(3/4)) )
+    #R2w             = np.sum(testSignal[periSampl:] * cos2wt * dt)*(2 / (time[-1]*(3/4)) )
+    
+    #R1w            = np["d"]ot( voltage * dt,sinwt  )/( np["d"]ot(sinwt * dt,sinwt) * params["currentd"])
+    #nR2w            = np["d"]ot( voltage * dt,cos2wt )/( np["d"]ot(cos2wt * dt, cos2wt) * params["currentd"])
+    
     fR2w           = fft( voltage, magList[0][periSampl:], params["frequency"])
     lR2w           = lockin( voltage, magList[0][periSampl:], params["frequency"], 0)
+    
+    #nR2w           = np.fft.fft(magList[3], 2)/2
     nR2w           = lockin( voltage/params["currentd"], magList[0][periSampl:], params["frequency"], 90)
+    #plt.title("H_x = " + str(params.hext[0]*params.mu0) + "[T]" )
+    #plt.legend()
+    #plt.show()
+    #plt.plot(time, mzlowfield(time, params), label = 'test')
+    #plt.plot(time, np.full(time.shape, sum(magList[1]) / len(magList[1]) ), label = 'mx')
+    #plt.plot(time, np.full(time.shape, sum(magList[2]) / len(magList[2]) ), label = 'my')
+    #plt.plot(time, np.full(time.shape, sum(magList[3]) / len(magList[3]) ), label = 'mz')
+    #plt.plot(time, testSignal, label = 'cos(X)')
+    #plt.plot(time, voltage, label = 'cos(X)')
+
+    #Checking the current-induced fields time evolution at each external field value:
+    
+    #plt.plot(time, npresults[:,4], label = 'Hx')
+    #plt.plot(time, npresults[:,5], label = 'Hy')
+    #plt.plot(time, npresults[:,6], label = 'Hz')
+    #plt.legend()
+    #plt.show()
+    
+    #Final value of the current-induced field
+    #H_eff = print(npresults[-1,4],npresults[-1,5],npresults[-1,6])
+    #return(R1w,R2w,npresults[-1,4],npresults[-1,5],npresults[-1,6],npresults[-1,1],npresults[-1,2],npresults[-1,3], Hs, nR2w, lR2w, fR2w)
     return(R1w,R2w, 
            magList[0], # ZZZ re-write function to save memory (duplicated time array) OLD: XXX
            npresults[:,4],npresults[:,5],npresults[:,6],
@@ -151,7 +208,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     
 paramters = Parameters
 n = 21
-phirange   = np.linspace(-np.pi/2, np.pi*3/2, num=n)
+phirange   = np.linspace(-np.pi/2,           np.pi*3/2,         num=n)
 signalw  = []
 signal2w  = []
 nsignal2w = []
@@ -186,7 +243,6 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
             elif hextdir == "custom":
                 customdir=text_to_vector(customdir)
                 customdir/=np.linalg.norm(customdir)
-                print("Custom direction: ", customdir)
                 paramters["hext"] = i*customdir   #np.array([i[0],i[1],i[2]]) #Maybe Crashes the app!!! XXX 
             initm=[0,0,1]
             initm=np.array(initm)/np.linalg.norm(initm)
@@ -287,6 +343,27 @@ def savedata(p, sig, fieldrangeT, name):
         f.write( str(Hs[0]) + '\t' + str(Hs[1]) + "\t" + str(p["etafield"]/p["etadamp"]) + "\t" + str(p["d"]) 
                 + '\t' + str(p["frequency"]) + '\n')
         f.close()
+
+def graph(x, y, xlab, ylab, pltlabel, plthead):
+   fig, ax = plt.subplots()
+   plt.plot(x, y, label = pltlabel)
+   ax.set(xlabel = xlab, ylabel = ylab)
+   plt.title(plthead)
+   plt.legend()
+   return fig
+
+def graphm(t, mx, my, mz, xlab, ylab, plthead):
+   fig, ax = plt.subplots()
+   plt.plot(t, mx, label = r'$x$')
+   plt.plot(t, my, label = r'$y$')
+   plt.plot(t, mz, label = r'$z$')
+   ax.set(xlabel = xlab, ylabel = ylab)
+   ax.set_ylim([-1.05,1.05])
+   plt.title(plthead)
+   plt.legend()
+   return fig
+
+
 
 if st.checkbox("Show relaxation of magnetization", True):
     selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
