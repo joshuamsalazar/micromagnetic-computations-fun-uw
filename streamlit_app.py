@@ -99,7 +99,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,params):
     params["currentd"] = 0
     timeRx, mRx = calc_equilibrium(m0_,t0_,t1_,dt_,params) #Computing equilibrium without current
     params["currentd"] = je * 1e10
-    time, m = calc_equilibrium(mRx[-1],t0_,t1_,dt_,params)
+    time, m = calc_equilibrium(m0_,t0_,t1_,dt_,params)
 
     sinwt = np.sin( params["omega"] * time)
     ac = params["currentd"] * sinwt 
@@ -245,7 +245,7 @@ if st.checkbox("Show relaxation of magnetization DC", True):
     st.write("Field value equivalent to", str( round(selected_fieldDC*paramters["mu0"], 3) ), "[T]")
 
     s_index = fieldrange.tolist().index(selected_fieldDC)
-
+    print(timeEvolRx)
     figtraj = graphm(timeEvolRx[s_index], Hx[s_index], Hy[s_index], Hz[s_index],
                       "time [ns]", r'$m_i$',  
                       "Evolution at " + str( round(selected_fieldDC*paramters["mu0"], 3) ) + "[T]")
@@ -253,11 +253,7 @@ if st.checkbox("Show relaxation of magnetization DC", True):
     st.pyplot(figtraj) 
 
 st.caption("Computing the harmonics")
-print(np.array(Hx)[:,1].shape)
-Hx=np.array(Hx)
-Hy=np.array(Hy)
-Hz=np.array(Hz)
-figmag = graphm(fieldrangeT, Hx[:,-1], Hy[:,-1], Hz[:,-1], r'$\mu_0 H_x$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
+
 
 figv2w = graph(fieldrangeT, signal2w, r'$\mu_0 H_x$ (T)', r'$V_{2w} [V]$ ', "V2w", "Second harmonic voltage" )
 figv1w = graph(fieldrangeT, signalw, r'$\mu_0 H_x$ (T)', r'$V_{w} [V]$ ', "Vw", "First harmonic voltage" )
