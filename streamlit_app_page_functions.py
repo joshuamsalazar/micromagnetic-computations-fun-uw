@@ -5,8 +5,8 @@ from streamlit_app_functions.theoretical_description import text as text_theoret
 print("Page functions loaded.")
 
 def header():
-    st.title('Magnetization dynamics for FM/HM interfaces, a single-spin model')
-    st.header('Online LLG integrator')
+    #st.title('Magnetization dynamics for FM/HM interfaces, a single-spin model')
+    st.header('Online LLG integrator - External Field sweeps')
     st.caption("Joshua Salazar, S. Koraltan, C. Abert, P. Flauger, M. Agrawal, S. Zeilinger, A. Satz, C. Schmitt, G. Jakob, R. Gupta, M. Kläui, H. Brückl, J. Güttinger and Dieter Suess")
     st.caption("University of Vienna - Physics of Functional Materials")
 
@@ -74,3 +74,20 @@ def fields(t,m,p):
     Hd = p["etadamp"] * p["currentd"] * p["hbar"]/(2*p["e"]*p["Js"]*p["d"])
     return (Hk, Hd)
     
+def savedata(p, sig, fieldrangeT, name):
+    #Storing the data into a dat file with the following strcture:
+    #Delta denotes current-induced fields
+    # ` denotes equilibium  
+    # Current | H_ext | R2w | \Delta H_x | \Delta H_y | \Delta H_z | 7mz` | my` | mz` | Rw | 11 phi rad
+    with open( "v2o_" + str(name) + "_j" + str(p["currentd"]/1e10) + "e10.dat", "w") as f:
+        i = 0
+        for sig in signal2w:
+            f.write( str(p["currentd"]) + "\t"  + str(fieldrangeT[i]) + "\t" + str(sig) + "\t" 
+                    + str(Hx[i]) + "\t" + str(Hy[i]) + "\t" + str(Hz[i]) +'\t' 
+                    + str(Mx[i]) + "\t" + str(My[i]) + "\t" + str(Mz[i]) + '\t' + str(signalw[i]) + "\t" + str(phirangeRad[i])
+                    + "\n")
+            i += 1
+        f.write("Hk\tHdamp\teta(f/d)\t t\t freq\n")
+        f.write( str(Hs[0]) + '\t' + str(Hs[1]) + "\t" + str(p["etafield"]/p["etadamp"]) + "\t" + str(p["d"]) 
+                + '\t' + str(p["frequency"]) + '\n')
+        f.close()
