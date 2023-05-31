@@ -31,13 +31,15 @@ with st.sidebar: #inputs
     form.form_submit_button("Submit and run model.")
     alpha = float(form.text_input('Gilbert damping constant', 1))
     je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))
-    K1 = float(form.text_input('Anisotropy constant K_1 [J/m^3]', 1.5 * 9100))
-    Js = float(form.text_input('Saturation magnetization Js [T]', 0.65))
-    RAHE = float(form.text_input('Anomalous Hall Effect coefficient', 0.65))
-    d = float(form.text_input('FM layer thickness [nm]', (0.6+1.2+1.1) ))* 1e-9
+    Js = float(form.text_input('Saturation magnetization Js [T]', 1.54))
+    Keff = float(form.text_input('Effective anisotropy field HK_eff [T]', 0.052))#[J/m^3]1.5 * 9100))
+    K1 = (Keff/(4 * 3.1415927 * 1e-7))*Js/2
+    print(K1)
+    RAHE = float(form.text_input('Anomalous Hall Effect coefficient', 0.174))
+    d = float(form.text_input('FM layer thickness [nm]', (1) ))* 1e-9
     frequency = float(form.text_input('AC frequency [MHz]', 0.1e3))*1e6
-    etadamp = float(form.text_input('Damping like torque term coefficient', 0.084))
-    etafield = float(form.text_input('Field like torque term', 0.008))
+    etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
+    etafield = float(form.text_input('Field like torque term', -0.031))
 
 timesteps = 200 #
 
@@ -61,7 +63,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "etafield"   : etafield,               # etafield/etadamp=eta
     "hext" : np.array([0,0,0]),
     "omega" : 2 * np.pi * frequency,
-    "area" : 1e-6 * 1e-6}
+    "area" : 10e-6 * 7e-9}
 
 def f(t, m, p):
     j            = p["currentd"] * np.sin(2 * np.pi * p["frequency"] * t)
@@ -95,17 +97,23 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
         magList[3].append(mag[2])
     return np.array(magList[0]), np.array(magList[1:])
 
-def calc_w1andw2(m0_,t0_,t1_,dt_,params): 
+def calc_w1andw2(m0_,t0_,t1_,dt_,params,customdir): 
     params["currentd"] = 0
     timeRx, mRx = calc_equilibrium(m0_,t0_,t1_,dt_,params) #Computing equilibrium without current
+    lastMRx = (mRx[0][-1], mRx[1][-1], mRx[2][-1])
     params["currentd"] = je * 1e10
-    time, m = calc_equilibrium(m0_,t0_,t1_,dt_,params)
+    #plt.plot(timeRx, mRx[0], label="mx")
+    #plt.plot(timeRx, mRx[1], label="my")
+    #plt.plot(timeRx, mRx[2], label="mz")
+    #plt.legend()
+    #plt.show()
 
+    time, m = calc_equilibrium(lastMRx,t0_,t1_,dt_,params)
     sinwt = np.sin( params["omega"] * time)
     ac = params["currentd"] * sinwt 
 
     #Computing the voltage from R_{AHE}
-    voltage = ac * m[2] * params["RAHE"] * params["area"] # V_xy = R_{AHE} * J_e * m_z * A 
+    voltage = ac * params["area"] * (m[2] * params["RAHE"] +  2 * m[0]* m[1] * params["RPHE"] )  # V_xy = R_{AHE} * J_e * m_z * A 
     voltagexx = ac * m[0]**2 * params["RAMR"]
     [R0,R1w,R2w], _ = curve_fit(fourier_model, time, voltage)
     #[R0xx,R1wxx,R2wxx], _ = curve_fit(fourier_model, time, voltagexx)
@@ -131,10 +139,12 @@ hextamplitude = 0.1/paramters["mu0"]
 fieldrange = np.linspace( -hextamplitude, hextamplitude, num = n )
 
 @st.cache_data(persist=True)
-def longSweep(t0_,t1_,dt_,params,hextdir):
+def longSweep(t0_,t1_,dt_,params,hextdir, customdir_):
     if longitudinalSweep:
         name = "_HSweep"
         for i in fieldrange:
+            initm=[0,0,1]
+            initm=np.array(initm)/np.linalg.norm(initm)
             paramters["currentd"] = je * 1e10
             if hextdir == "x":
                 paramters["hext"] = i*np.array([1,0,0])
@@ -142,18 +152,22 @@ def longSweep(t0_,t1_,dt_,params,hextdir):
                 paramters["hext"] = i*np.array([0,1,0])
             elif hextdir == "z":
                 paramters["hext"] = i*np.array([0,0,1])
+                initm=[0.5,0.1,0.2]
+                initm=np.array(initm)/np.linalg.norm(initm)
             elif hextdir == "custom":
-                customdir=text_to_vector(customdir)
+                initm=[1,0,0.2]
+                initm=np.array(initm)/np.linalg.norm(initm)
+                customdir=text_to_vector(customdir_)
                 customdir/=np.linalg.norm(customdir)
                 print("Custom direction: ", customdir)
                 paramters["hext"] = i*customdir   #np.array([i[0],i[1],i[2]]) #Maybe Crashes the app!!! XXX 
-            initm=[0,0,1]
-            initm=np.array(initm)/np.linalg.norm(initm)
+            
+            print("Hex: ", paramters["hext"])
             R1w,R2w, t, mx,my,mz, tRx, hx,hy,hz = calc_w1andw2(m0_=initm,
                                                                             t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(timesteps * paramters["frequency"]),
-                                                                            params=paramters)
+                                                                            params=paramters,customdir=customdir_)
             #Storing each current-induced field and magnetization state for each ext field value
             timeEvol.append(t)
             timeEvolRx.append(tRx)
@@ -197,8 +211,7 @@ phirangeRad=[]
 timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx = longSweep(t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(timesteps * paramters["frequency"]),
-                                                                            params=paramters, hextdir=hextdir)
-
+                                                                            params=paramters, hextdir=hextdir,customdir_=customdir)
 
 if rotationalSweep:
     name = "_HconsRotat"
@@ -226,58 +239,65 @@ if rotationalSweep:
             #Live prompt
             print( h, R1w, R2w, 'Pi:'+str(i%(2*np.pi)), '\tHk,Hd', round(Hs[0]), round(Hs[1]), mx, my, mz)
     
-if st.checkbox("Show relaxation of magnetization", True):
-    selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
-                    options = fieldrange.tolist())
-    st.write("Field value equivalent to", str( round(selected_field*paramters["mu0"], 3) ), "[T]")
+##########################------Page-------#########################
 
-    s_index = fieldrange.tolist().index(selected_field)
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance"]) 
 
-    figtraj = graphm(timeEvol[s_index], Mx[s_index], My[s_index], Mz[s_index],
-                      "time [ns]", r'$m_i$',  
-                      "Evolution at " + str( round(selected_field*paramters["mu0"], 3) ) + "[T]")
-
-    st.pyplot(figtraj) 
-
-if st.checkbox("Show relaxation of magnetization DC", True):
-    selected_fieldDC = st.select_slider('Slide the bar to check the DC trajectories for an specific field value [A/m]',
-                    options = fieldrange.tolist())
-    st.write("Field value equivalent to", str( round(selected_fieldDC*paramters["mu0"], 3) ), "[T]")
-
-    s_index = fieldrange.tolist().index(selected_fieldDC)
-    print(timeEvolRx)
-    figtraj = graphm(timeEvolRx[s_index], Hx[s_index], Hy[s_index], Hz[s_index],
-                      "time [ns]", r'$m_i$',  
-                      "Evolution at " + str( round(selected_fieldDC*paramters["mu0"], 3) ) + "[T]")
-
-    st.pyplot(figtraj) 
-
-st.caption("Computing the harmonics")
-
-
-figv2w = graph(fieldrangeT, signal2w, r'$\mu_0 H_x$ (T)', r'$V_{2w} [V]$ ', "V2w", "Second harmonic voltage" )
-figv1w = graph(fieldrangeT, signalw, r'$\mu_0 H_x$ (T)', r'$V_{w} [V]$ ', "Vw", "First harmonic voltage" )
-
-figamr = graph(fieldrangeT, amrList, r'$\mu_0 H_x$ (T)', r'$m_x^2$', r'$m_x^2$','AMR effect')
-figahe = graph(fieldrangeT, aheList, r'$\mu_0 H_x$ (T)', r'$m_{z,+j_e}-m_{z,-j_e}$', r'$m_{z,+j_e}-m_{z,ij_e}$','AHE effect')
-figsmr = graph(fieldrangeT, smrList, r'$\mu_0 H_x$ (T)', r'$m_y^2$', r'$m_y^2$','SMR effect')
-
-figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_x$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
+with tab1:
+    st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction (check ref. [X] Phys. Rev. B 89, 144425 (2014)), is equivalent to relaxing the system without current applied")
+    figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
 ##plt.plot(fieldrangeT, lsignal2w, label = 'lock in r2w')
 ##plt.plot(fieldrangeT, fsignal2w, label = 'fft r2w')
 ##plt.plot(fieldrangeT, H,'r') 
 ##ax.set(xlabel=r'$\phi$ [grad]',ylabel = r'$m_{i}$ ') 
+    st.pyplot(figmag)
+
+with tab2:
+    if st.checkbox("Show relaxation of magnetization", True):
+        selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
+                        options = fieldrange.tolist())
+        st.write("Field value equivalent to", str( round(selected_field*paramters["mu0"], 3) ), "[T]")
+
+        s_index = fieldrange.tolist().index(selected_field)
+
+        figtraj = graphm(timeEvol[s_index], Mx[s_index], My[s_index], Mz[s_index],
+                        "time [ns]", r'$m_i$',  
+                        "Evolution at " + str( round(selected_field*paramters["mu0"], 3) ) + "[T]")
+
+        st.pyplot(figtraj) 
+
+    if st.checkbox("Show relaxation of magnetization DC", False):
+        selected_fieldDC = st.select_slider('Slide the bar to check the DC trajectories for an specific field value [A/m]',
+                        options = fieldrange.tolist())
+        st.write("Field value equivalent to", str( round(selected_fieldDC*paramters["mu0"], 3) ), "[T]")
+
+        s_index = fieldrange.tolist().index(selected_fieldDC)
+        figtraj = graphm(timeEvolRx[s_index], Hx[s_index], Hy[s_index], Hz[s_index],
+                        "time [ns]", r'$m_i$',  
+                        "Evolution at " + str( round(selected_fieldDC*paramters["mu0"], 3) ) + "[T]")
+
+        st.pyplot(figtraj) 
+
+with tab3:
+
+    figv2w = graph(fieldrangeT, signal2w, r'$\mu_0 H_ext$ (T)', r'$V_{2w} [V]$ ', "V2w", "Second harmonic voltage" )
+    figv1w = graph(fieldrangeT, signalw, r'$\mu_0 H_ext$ (T)', r'$V_{w} [V]$ ', "Vw", "First harmonic voltage" )
+    st.pyplot(figv1w)
+    st.pyplot(figv2w)  
+    figahe = graph(fieldrangeT, aheList, r'$\mu_0 H_ext$ (T)', r'$m_{z,+j_e}-m_{z,-j_e}$', r'$m_{z,+j_e}-m_{z,ij_e}$','AHE effect')
+    st.pyplot(figahe)
+
+with tab4:
+    figamr = graph(fieldrangeT, amrList, r'$\mu_0 H_ext$ (T)', r'$m_x^2$', r'$m_x^2$','AMR effect')
+    st.pyplot(figamr)
+st.caption("Computing the harmonics")
+
+with tab5:
+    figsmr = graph(fieldrangeT, smrList, r'$\mu_0 H_ext$ (T)', r'$m_y^2$', r'$m_y^2$','SMR effect')
+    st.pyplot(figsmr)
 
 #st.pyplot(figv1w)
 #st.pyplot(figv2w)
-
-st.pyplot(figahe)
-st.pyplot(figamr)
-st.pyplot(figsmr)
-
-st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction(check ref. [X] Phys. Rev. B 89, 144425 (2014)), which is equivalent to relaxing the system without current applied")
-
-st.pyplot(figmag)
 
 st.write(r"As can be noted in the magnetization dynamics for a given external field value, the system quickly gets its magnetization direction according to the applied AC current. However, if we just employ a single period for the time integration, the result of the Fourier integral may differ from the actual coefficient, as the first time steps do not have a pure wave behavior.")
 
