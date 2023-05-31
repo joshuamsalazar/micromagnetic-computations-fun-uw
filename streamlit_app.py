@@ -26,12 +26,13 @@ def text_to_vector(text):
 with st.sidebar: #inputs
     customdir = st.text_input("Chose an external field sweep direction", "(1,0,0)")
     text_to_vector(customdir)
-    customHAmpl = st.number_input("Chose an external field sweep amplitude", 0.1)
     hextdir = st.radio("Or any cartesian direction", ("x","y","z","custom"))
     form = st.form("Parameters")
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
     form.form_submit_button("Submit and run model.")
-    alpha = float(form.text_input('Gilbert damping constant', 1))
+    customHAmpl = form.number_input("Chose an external field sweep amplitude", 0.1)
+    etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
+    etafield = float(form.text_input('Field like torque term', -0.031))
     je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))
     Js = float(form.text_input('Saturation magnetization Js [T]', 1.54))
     Keff = float(form.text_input('Effective anisotropy field HK_eff [T]', 0.052))#[J/m^3]1.5 * 9100))
@@ -41,8 +42,7 @@ with st.sidebar: #inputs
     RPHE = float(form.text_input('Planar Hall Effect coefficient [Ohm]', 0.02))
     d = float(form.text_input('FM layer thickness [nm]', (1) ))* 1e-9
     frequency = float(form.text_input('AC frequency [MHz]', 0.1e3))*1e6
-    etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
-    etafield = float(form.text_input('Field like torque term', -0.031))
+    alpha = float(form.text_input('Gilbert damping constant', 1))
 
 timesteps = 200 #
 
@@ -88,7 +88,7 @@ hextamplitude = customHAmpl/paramters["mu0"]
 fieldrange = np.linspace( -hextamplitude, hextamplitude, num = n )
 
 @st.cache_data(persist=True)
-def longSweep(t0_,t1_,dt_,params,hextdir, customdir_):
+def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
     if longitudinalSweep:
         name = "_HSweep"
         for i in fieldrange:
@@ -160,7 +160,9 @@ phirangeRad=[]
 timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx = longSweep(t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(timesteps * paramters["frequency"]),
-                                                                            params=paramters, hextdir=hextdir,customdir_=customdir)
+                                                                            params=paramters, 
+                                                                            hextdir=hextdir,
+                                                                            fieldrange=fieldrange,customdir_=customdir)
 
 if rotationalSweep:
     name = "_HconsRotat"
