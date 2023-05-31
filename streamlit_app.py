@@ -188,16 +188,16 @@ if rotationalSweep:
     
 ##########################------Page-------#########################
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance"]) 
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance", "Description"]) 
 
 with tab1:
-    st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction (check ref. [X] Phys. Rev. B 89, 144425 (2014)), is equivalent to relaxing the system without current applied")
     figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
 ##plt.plot(fieldrangeT, lsignal2w, label = 'lock in r2w')
 ##plt.plot(fieldrangeT, fsignal2w, label = 'fft r2w')
 ##plt.plot(fieldrangeT, H,'r') 
 ##ax.set(xlabel=r'$\phi$ [grad]',ylabel = r'$m_{i}$ ') 
     st.pyplot(figmag)
+    st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction (check ref. [X] Phys. Rev. B 89, 144425 (2014)), is equivalent to relaxing the system without current applied")
 
 with tab2:
     if st.checkbox("Show relaxation of magnetization", True):
@@ -246,17 +246,19 @@ with tab5:
 #st.pyplot(figv1w)
 #st.pyplot(figv2w)
 
-st.write(r"As can be noted in the magnetization dynamics for a given external field value, the system quickly gets its magnetization direction according to the applied AC current. However, if we just employ a single period for the time integration, the result of the Fourier integral may differ from the actual coefficient, as the first time steps do not have a pure wave behavior.")
+with tab6:
 
-st.write('If we just take in consideration the magnetization components to describe the AMR and AHE effects, the transfer curves are:')
-st.write(r'Inside the simulation the voltage is computed as $V^{xy}(t)=J_x(t) m_z(t) R_{AHE} \sigma$, where $\sigma$ is the cross section area of the conducting element. In our case $\sigma=(2 \mu m \times 6 \text{nm})$ ')
+    st.write(r"As can be noted in the magnetization dynamics for a given external field value, the system quickly gets its magnetization direction according to the applied AC current. However, if we just employ a single period for the time integration, the result of the Fourier integral may differ from the actual coefficient, as the first time steps do not have a pure wave behavior.")
 
-st.write("Lastly, the resulting transfer curves using the Fourier series integral definition are: ")
+    st.write('If we just take in consideration the magnetization components to describe the AMR and AHE effects, the transfer curves are:')
+    st.write(r'Inside the simulation the voltage is computed as $V^{xy}(t)=J_x(t) m_z(t) R_{AHE} \sigma$, where $\sigma$ is the cross section area of the conducting element. In our case $\sigma=(2 \mu m \times 6 \text{nm})$ ')
 
-st.write('The following page describes the details to consider to efficiently simulate a FM/HM interface. This model is based on the Landau-Lifshitz-Gilbert equation, and the equation is integrated using _scipy_ python libraries. Hence, the magnetization dynamics is computed  with this model, which also contains routines to calculate the first and second harmonics of the Anomalous Hall Voltage (from AH Effect). This interactve tool is designed to allow quick computations and detailed understanding of the considerations made to simulate such FM/HM interfaces. ')
-st.write('The parameters used in the computation for the live plot results can be freely manipulated using the left sidebar (_available clicking in the arrowhead on the top left of this web app_). Feel free to perform computations with the desired values. ')
+    st.write("Lastly, the resulting transfer curves using the Fourier series integral definition are: ")
 
-text_description()
+    st.write('The following page describes the details to consider to efficiently simulate a FM/HM interface. This model is based on the Landau-Lifshitz-Gilbert equation, and the equation is integrated using _scipy_ python libraries. Hence, the magnetization dynamics is computed  with this model, which also contains routines to calculate the first and second harmonics of the Anomalous Hall Voltage (from AH Effect). This interactve tool is designed to allow quick computations and detailed understanding of the considerations made to simulate such FM/HM interfaces. ')
+    st.write('The parameters used in the computation for the live plot results can be freely manipulated using the left sidebar (_available clicking in the arrowhead on the top left of this web app_). Feel free to perform computations with the desired values. ')
+
+    text_description()
 
 #Pending code sections 
     #if st.checkbox("Show fields evolution", False):
@@ -265,3 +267,10 @@ text_description()
     #                      "Current induced fields at H_ext:" + str( round(selected_field*paramters["mu0"], 3) ) + "[T]")
     #
     #    st.pyplot(figfields)
+with open("llg_eqn.py") as f:
+    lines = f.readlines()
+
+st.write("The following libraries are used in this web app:")
+st.code(lines, language='python')
+content = ''.join(lines)  # Concatenate all lines into a single string
+st.code(content, language='python')
