@@ -9,7 +9,7 @@ def header():
     st.header('Online LLG integrator - External Field sweeps')
     st.caption("Joshua Salazar, S. Koraltan, C. Abert, P. Flauger, M. Agrawal, S. Zeilinger, A. Satz, C. Schmitt, G. Jakob, R. Gupta, M. Kläui, H. Brückl, J. Güttinger and Dieter Suess")
     st.caption("University of Vienna - Physics of Functional Materials")
-    st.caption("Please WAIT until the simulation finishes before submiting new values")
+    st.subheader("Please WAIT until the simulation finishes before submiting new values")
 
 def text_description():
     st.subheader('Theoretical description')
