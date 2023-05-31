@@ -26,6 +26,7 @@ def text_to_vector(text):
 with st.sidebar: #inputs
     customdir = st.text_input("Chose an external field sweep direction", "(1,0,0)")
     text_to_vector(customdir)
+    customHAmpl = st.number_input("Chose an external field sweep amplitude", 0.1)
     hextdir = st.radio("Or any cartesian direction", ("x","y","z","custom"))
     form = st.form("Parameters")
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
@@ -83,7 +84,7 @@ phirangeRad=[]
 
 longitudinalSweep = True
 rotationalSweep = False
-hextamplitude = 0.1/paramters["mu0"]
+hextamplitude = customHAmpl/paramters["mu0"]
 fieldrange = np.linspace( -hextamplitude, hextamplitude, num = n )
 
 @st.cache_data(persist=True)
