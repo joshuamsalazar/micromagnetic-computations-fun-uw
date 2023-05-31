@@ -270,7 +270,6 @@ with tab6:
 with open("llg_eqn.py") as f:
     lines = f.readlines()
 
-st.write("The following libraries are used in this web app:")
-st.code(lines, language='python')
+st.write("The following code is used to solve the LLG for every Hext value:")
 content = ''.join(lines)  # Concatenate all lines into a single string
 st.code(content, language='python')
