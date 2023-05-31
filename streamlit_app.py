@@ -36,7 +36,8 @@ with st.sidebar: #inputs
     Keff = float(form.text_input('Effective anisotropy field HK_eff [T]', 0.052))#[J/m^3]1.5 * 9100))
     K1 = (Keff/(4 * 3.1415927 * 1e-7))*Js/2
     print(K1)
-    RAHE = float(form.text_input('Anomalous Hall Effect coefficient', 0.174))
+    RAHE = float(form.text_input('Anomalous Hall Effect coefficient [Ohm]', 0.174))
+    RPHE = float(form.text_input('Planar Hall Effect coefficient [Ohm]', 0.02))
     d = float(form.text_input('FM layer thickness [nm]', (1) ))* 1e-9
     frequency = float(form.text_input('AC frequency [MHz]', 0.1e3))*1e6
     etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
@@ -50,7 +51,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "K1" : K1,  
     "Js" : Js,
     "RAHE" : RAHE,
-    "RPHE" : 0,
+    "RPHE" : RPHE,
     "RAMR" : 0,
     "d" : d,    
     "frequency" : frequency,

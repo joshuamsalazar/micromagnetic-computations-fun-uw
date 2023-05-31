@@ -2,8 +2,6 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.optimize import curve_fit
 
-je = 10
-
 Parameters = { #Convert to python class, but how to hash it? required for decorator @st.cache
     "gamma" : 2.2128e5,
     "alpha" : 1,
@@ -25,6 +23,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "hext" : np.array([0,0,0]),
     "omega" : 2 * np.pi * 0.1e9,
     "area" : 10e-6 * 7e-9}
+je = 10
 
 def f(t, m, p):
     j            = p["currentd"] * np.sin(2 * np.pi * p["frequency"] * t)
@@ -59,21 +58,16 @@ def calc_equilibrium(m0_,t0_,t1_,dt_,paramters_):
     return np.array(magList[0]), np.array(magList[1:])
 
 def calc_w1andw2(m0_,t0_,t1_,dt_,params,customdir): 
-    params["currentd"] = 0
+    params["currentd"] = 0 #No current for initial relaxation
     timeRx, mRx = calc_equilibrium(m0_,t0_,t1_,dt_,params) #Computing equilibrium without current
-    lastMRx = (mRx[0][-1], mRx[1][-1], mRx[2][-1])
-    params["currentd"] = je * 1e10
-    #plt.plot(timeRx, mRx[0], label="mx")
-    #plt.plot(timeRx, mRx[1], label="my")
-    #plt.plot(timeRx, mRx[2], label="mz")
-    #plt.legend()
-    #plt.show()
+    lastMRx = (mRx[0][-1], mRx[1][-1], mRx[2][-1])  #Last value of the equilibrium
 
+    params["currentd"] = je * 1e10  #Turning on the current again
     time, m = calc_equilibrium(lastMRx,t0_,t1_,dt_,params)
-    sinwt = np.sin( params["omega"] * time)
-    ac = params["currentd"] * sinwt 
+    sinwt = np.sin( params["omega"] * time) 
+    ac = params["currentd"] * sinwt #AC current
 
-    #Computing the voltage from R_{AHE}
+    #Vxy voltage: Following the convention of Dutta: PRB 103, 184416 (2021) V_xy = R_{AHE} * I * m_z  + 2 * R_{PHE} * I * m_x * m_y
     voltage = ac * params["area"] * (m[2] * params["RAHE"] +  2 * m[0]* m[1] * params["RPHE"] )  # V_xy = R_{AHE} * J_e * m_z * A 
     voltagexx = ac * m[0]**2 * params["RAMR"]
     [R0,R1w,R2w], _ = curve_fit(fourier_model, time, voltage)
