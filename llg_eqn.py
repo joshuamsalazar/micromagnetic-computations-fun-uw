@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import ode
 from scipy.optimize import curve_fit
 
-Parameters = { #Convert to python class, but how to hash it? required for decorator @st.cache
+Parameters = { #Default values for initialization, later take from st.form()
     "gamma" : 2.2128e5,
     "alpha" : 1,
     "K1" : 12350,  

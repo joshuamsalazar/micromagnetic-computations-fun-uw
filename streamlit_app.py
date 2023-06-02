@@ -24,25 +24,23 @@ def text_to_vector(text):
         return separated_text
 
 with st.sidebar: #inputs
-    customdir = st.text_input("Chose an external field sweep direction", "(1,0,0)")
-    text_to_vector(customdir)
-    hextdir = st.radio("Or any cartesian direction", ("x","y","z","custom"))
     form = st.form("Parameters")
+    customdir = form.text_input("Choose an external field sweep direction", "(1,0,0)")
+    hextdir = form.radio("Or a cartesian direction", ("x","y","z","custom"))
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
     form.form_submit_button("Submit and run model.")
     customHAmpl = form.number_input("Chose an external field sweep amplitude", 0.1)
-    etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
-    etafield = float(form.text_input('Field like torque term', -0.031))
-    je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))
-    Js = float(form.text_input('Saturation magnetization Js [T]', 1.54))
-    Keff = float(form.text_input('Effective anisotropy field HK_eff [T]', 0.052))#[J/m^3]1.5 * 9100))
+    etadamp = float(form.number_input('Damping like torque term coefficient', 0.104))
+    etafield = form.number_input('Field like torque term', -0.031)
+    je = form.number_input('Current density j_e [10^10 A/m^2]', 10)
+    Js = form.number_input('Saturation magnetization Js [T]', 1.54)
+    Keff = form.number_input('Effective anisotropy field HK_eff [T]', 0.052)#[J/m^3]1.5 * 9100))
     K1 = (Keff/(4 * 3.1415927 * 1e-7))*Js/2
-    print(K1)
-    RAHE = float(form.text_input('Anomalous Hall Effect coefficient [Ohm]', 0.174))
-    RPHE = float(form.text_input('Planar Hall Effect coefficient [Ohm]', 0.02))
-    d = float(form.text_input('FM layer thickness [nm]', (1) ))* 1e-9
-    frequency = float(form.text_input('AC frequency [MHz]', 0.1e3))*1e6
-    alpha = float(form.text_input('Gilbert damping constant', 1))
+    RAHE = form.number_input('Anomalous Hall Effect coefficient [Ohm]', 0.174)
+    RPHE = form.number_input('Planar Hall Effect coefficient [Ohm]', 0.02)
+    d = form.number_input('FM layer thickness [nm]', (1) )* 1e-9
+    frequency = form.number_input('AC frequency [MHz]', 0.1e3)*1e6
+    alpha = form.number_input('Gilbert damping constant', 1)
 
 timesteps = 200 #
 
@@ -217,7 +215,7 @@ with tab2:
 
         st.pyplot(figtraj) 
 
-    if st.checkbox("Show relaxation of magnetization DC", False):
+    if st.checkbox("Show relaxation of magnetization wo/current (eq. mag.)", False):
         selected_fieldDC = st.select_slider('Slide the bar to check the DC trajectories for an specific field value [A/m]',
                         options = fieldrange.tolist())
         st.write("Field value equivalent to", str( round(selected_fieldDC*paramters["mu0"], 3) ), "[T]")
