@@ -80,7 +80,7 @@ aheList, amrList, smrList = [[],[],[]]
 fieldrangeT =[]
 phirangeRad=[]
 
-longitudinalSweep = True
+longitudinalSweep = True 
 rotationalSweep = False
 hextamplitude = customHAmpl/paramters["mu0"]
 fieldrange = np.linspace( -hextamplitude, hextamplitude, num = n )
@@ -164,15 +164,15 @@ timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2
 
 if rotationalSweep:
     name = "_HconsRotat"
-    fieldrange = np.linspace(0,               0.8/paramters["mu0"],    num= int((n-1)/10) )
+    fieldrange = np.linspace(0, customHAmpl/paramters["mu0"],    num= int((n-1)/10) )
     for h in fieldrange:
-        ipMagnitude = 0.05/paramters["mu0"]          # 0.05/paramters["mu0"] # in Tesla
+        ipMagnitude = hextamplitude          # 0.05/paramters["mu0"] # in Tesla
         for i in phirange:
             paramters["currentd"] = je * 1e10
             paramters["hext"] = np.array([ np.cos(i) * ipMagnitude , np.sin(i) * ipMagnitude , h]) 
             initm=[0,0,-1]
             initm=np.array(initm)/np.linalg.norm(initm)
-            R1w,R2w,hx,hy,hz,mx,my,mz, Hs, nR2w = calc_w1andw2(m0_=initm,t0_=0,t1_=1/paramters["frequency"],dt_=1/(timesteps * paramters["frequency"]), params=paramters)
+            R1w,R2w,hx,hy,hz,mx,my,mz, Hs, nR2w = calc_w1andw2(m0_=initm,t0_=0,t1_=1/paramters["frequency"],dt_=1/(timesteps * paramters["frequency"]), params=paramters, customdir=customdir)
             #Storing each current-induced field and magnetization state for each ext field value
             Hx.append(hx)
             Hy.append(hy)
@@ -180,8 +180,8 @@ if rotationalSweep:
             Mx.append(mx)
             My.append(my)
             Mz.append(mz)
-            phirangeRad.append(i*180/np.pi)
-            fieldrangeT.append(h)
+            phirangeRad.append(i*180/np.pi) #XXX
+            fieldrangeT.append(i*180/np.pi)
             signalw.append(R1w)
             signal2w.append(R2w)
             nsignal2w.append(nR2w)
