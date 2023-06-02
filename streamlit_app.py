@@ -138,10 +138,66 @@ def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
             aheList.append(mz[-1]-imagList[2][-1])
             amrList.append(mx[-1]*mx[-1])
             smrList.append(my[-1]*my[-1])
-        
         #Live prompt
         #print(i, R1w, R2w, '\tHk,Hd', round(Hs[0]), round(Hs[1]), mx[-1], my[-1], mz[-1])
         return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx
+
+@st.cache_data(persist=True)
+def rotatSweep(t0_,t1_,dt_,params,hextdir, frange, customdir_):
+    if longitudinalSweep: #XXX
+        for i in frange: # i -> phi
+            initm=[0,0,1]
+            initm=np.array(initm)/np.linalg.norm(initm)
+            paramters["currentd"] = je * 1e10
+            paramters["hext"] = np.array([ np.cos(i) * hextamplitude, np.sin(i) * hextamplitude , 0]) 
+            #if hextdir == "x":
+            #    paramters["hext"] = i*np.array([1,0,0])
+            #elif hextdir == "y":
+            #    paramters["hext"] = i*np.array([0,1,0])
+            #elif hextdir == "z":
+            #    paramters["hext"] = i*np.array([0,0,1])
+            #    initm=[0.5,0.1,0.2]
+            #    initm=np.array(initm)/np.linalg.norm(initm)
+            #elif hextdir == "custom":
+            #    initm=[1,0,0.2]
+            #    initm=np.array(initm)/np.linalg.norm(initm)
+            #    customdir=text_to_vector(customdir_)
+            #    customdir/=np.linalg.norm(customdir)
+            #    print("Custom direction: ", customdir)
+            #    paramters["hext"] = i*customdir   #np.array([i[0],i[1],i[2]]) #Maybe Crashes the app!!! XXX 
+            print("Hex rot: ", paramters["hext"])
+            R1w,R2w, t, mx,my,mz, tRx, hx,hy,hz = calc_w1andw2(m0_=initm,
+                                                                            t0_=0,
+                                                                            t1_=4/paramters["frequency"],
+                                                                            dt_=1/(timesteps * paramters["frequency"]),
+                                                                            params=paramters,customdir=customdir_)
+            #Storing each current-induced field and magnetization state for each ext field value
+            timeEvol.append(t)
+            timeEvolRx.append(tRx)
+            Hx.append(hx)
+            Hy.append(hy)
+            Hz.append(hz)
+            Mx.append(mx)
+            My.append(my)
+            Mz.append(mz)
+            m_eqx.append(hx[-1])
+            m_eqy.append(hy[-1])
+            m_eqz.append(hz[-1])
+            fieldrangeT.append(i)
+            signalw.append(R1w) 
+            signal2w.append(R2w) 
+            phirangeRad.append(0) #Get actual phi angle
+            #AHE & AMR
+            paramters["currentd"] = -paramters["currentd"]
+            _, imagList  = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(timesteps * paramters["frequency"]), paramters_=paramters)
+            
+            aheList.append(mz[-1]-imagList[2][-1])
+            amrList.append(mx[-1]*mx[-1])
+            smrList.append(my[-1]*my[-1])
+        #Live prompt
+        #print(i, R1w, R2w, '\tHk,Hd', round(Hs[0]), round(Hs[1]), mx[-1], my[-1], mz[-1])
+        return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx
+
 signalw  = []
 signal2w  = []
 nsignal2w = []
@@ -155,12 +211,12 @@ aheList, amrList = [[],[]]
 fieldrangeT =[]
 phirangeRad=[]
 
-timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx = longSweep(t0_=0,
+timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx = rotatSweep(t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(timesteps * paramters["frequency"]),
                                                                             params=paramters, 
                                                                             hextdir=hextdir,
-                                                                            fieldrange=fieldrange,customdir_=customdir)
+                                                                            frange=phirange,customdir_=customdir)
 
 if rotationalSweep:
     name = "_HconsRotat"
