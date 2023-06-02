@@ -25,8 +25,6 @@ def text_to_vector(text):
 
 with st.sidebar: #inputs
     form = st.form("Parameters")
-    customdir = form.text_input("Choose an external field sweep direction", "(1,0,0)")
-    hextdir = form.radio("Or a cartesian direction", ("x","y","z","custom"))
     form.markdown("**Enter** your own custom values to run the model and **press** submit.")
     form.form_submit_button("Submit and run model.")
     customHAmpl = form.number_input("Chose an external field sweep amplitude", 0.1)
@@ -41,6 +39,8 @@ with st.sidebar: #inputs
     d = form.number_input('FM layer thickness [nm]', (1) )* 1e-9
     frequency = form.number_input('AC frequency [MHz]', 0.1e3)*1e6
     alpha = form.number_input('Gilbert damping constant', 1)
+    customdir = form.text_input("Choose an external field sweep direction", "(1,0,0)")
+    hextdir = form.radio("Or a cartesian direction", ("x","y","z","custom"))
 
 timesteps = 200 #
 
@@ -246,10 +246,10 @@ if rotationalSweep:
     
 ##########################------Page-------#########################
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance", "Description"]) 
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance", "Description", "Misc"]) 
 
 with tab1:
-    figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
+    figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\phi [rad]', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
 ##plt.plot(fieldrangeT, lsignal2w, label = 'lock in r2w')
 ##plt.plot(fieldrangeT, fsignal2w, label = 'fft r2w')
 ##plt.plot(fieldrangeT, H,'r') 
@@ -258,6 +258,9 @@ with tab1:
     st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction (check ref. [X] Phys. Rev. B 89, 144425 (2014)), is equivalent to relaxing the system without current applied")
 
 with tab2:
+    st.write("pending to add relaxation for every direction")
+
+with tab7:
     if st.checkbox("Show relaxation of magnetization", True):
         selected_field = st.select_slider('Slide the bar to check the trajectories for an specific field value [A/m]',
                         options = fieldrange.tolist())
@@ -285,20 +288,20 @@ with tab2:
 
 with tab3:
 
-    figv2w = graph(fieldrangeT, signal2w, r'$\mu_0 H_ext$ (T)', r'$V_{2w} [V]$ ', "V2w", "Second harmonic voltage" )
-    figv1w = graph(fieldrangeT, signalw, r'$\mu_0 H_ext$ (T)', r'$V_{w} [V]$ ', "Vw", "First harmonic voltage" )
+    figv2w = graph(fieldrangeT, signal2w, r'$\phi [rad]', r'$V_{2w} [V]$ ', "V2w", "Second harmonic voltage" )
+    figv1w = graph(fieldrangeT, signalw, r'$\phi [rad]', r'$V_{w} [V]$ ', "Vw", "First harmonic voltage" )
     st.pyplot(figv1w)
     st.pyplot(figv2w)  
-    figahe = graph(fieldrangeT, aheList, r'$\mu_0 H_ext$ (T)', r'$m_{z,+j_e}-m_{z,-j_e}$', r'$m_{z,+j_e}-m_{z,ij_e}$','AHE effect')
+    figahe = graph(fieldrangeT, aheList, r'$\phi [rad]', r'$m_{z,+j_e}-m_{z,-j_e}$', r'$m_{z,+j_e}-m_{z,ij_e}$','AHE effect')
     st.pyplot(figahe)
 
 with tab4:
-    figamr = graph(fieldrangeT, amrList, r'$\mu_0 H_ext$ (T)', r'$m_x^2$', r'$m_x^2$','AMR effect')
+    figamr = graph(fieldrangeT, amrList, r'$\phi [rad]', r'$m_x^2$', r'$m_x^2$','AMR effect')
     st.pyplot(figamr)
 st.caption("Computing the harmonics")
 
 with tab5:
-    figsmr = graph(fieldrangeT, smrList, r'$\mu_0 H_ext$ (T)', r'$m_y^2$', r'$m_y^2$','SMR effect')
+    figsmr = graph(fieldrangeT, smrList, r'$\phi [rad]', r'$m_y^2$', r'$m_y^2$','SMR effect')
     st.pyplot(figsmr)
 
 #st.pyplot(figv1w)
