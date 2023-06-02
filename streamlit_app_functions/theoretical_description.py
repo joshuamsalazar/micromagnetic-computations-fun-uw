@@ -12,9 +12,9 @@ def text():
     \frac{\gamma \alpha}{1+\alpha^2} \:\vec{m} \times (\vec{m} \times \vec{H}_{\text{eff}})''')
     st.write(r'Where $m$ represents the mgnetization unit vector, $\alpha$ the Gilbert damping constant, $\gamma$ the gyromagnetic ratio, and $\vec{H}_{\text{eff}}$ is the effective magnetic field. The effective magnetic field contains contributions of the applied external field, the effective anisotropy field, and the current induced fields via spin orbit torque effects. It reads as follows:')
     st.latex(r''' \vec{ H }_{\text{eff}} =
-    \vec{ H }_{\text{ext}} + \vec{ H }_{\text{k}} + 
+    \vec{ H }_{\text{ext}} + \vec{ H }_{\text{k}_\text{eff}} - ( 
     \vec{ H }^{\text{SOT}}_{\text{FL}} + 
-    \vec{ H }^{\text{SOT}}_{\text{DL}} \\ \:\\ \:\\
+    \vec{ H }^{\text{SOT}}_{\text{DL}} ) \\ \:\\ \:\\
     \vec{ H }_{\text{k}} = \frac{2\vec{K}_1}{Js}  \\ \:\\
     \vec{ H }^{\text{SOT}}_{\text{FL}} = \eta_\text{FL} \frac{  j_e \hbar  }{ 2 e t \mu_0 M_s }\:\vec{m} \times (\vec{m} \times \vec{p}) \\ \:\\
     \vec{ H }^{\text{SOT}}_{\text{DL}} = \eta_\text{DL} \frac{  j_e \hbar  }{ 2 e t \mu_0 M_s }\:(\vec{m} \times \vec{p})
@@ -31,4 +31,4 @@ def text():
     st.latex(r''' V_{xy}(t) = V^{xy}_0 + V^{xy}_\omega\sin(\omega t) + V^{xy}_{2\omega}\cos(2\omega t) + ...''')
     st.write("Those harmonic components can be computed by applying a sin-cos fit over one full period of relaxed magnetization (in AC current context, equilibrium means the system undergoes just in oscillations due to the current).")
 
-    st.write(r"As the system starts fully pointing in the z direction, it is important to simulate the electric current with a cosine wave $J_x=j_e \cos(\omega t)$. ")
+    st.write(r"As the system starts fully pointing in the z direction, it is important to simulate the electric current with a cosine wave $J_x=j_e \sin(\omega t)$. ")
