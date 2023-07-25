@@ -32,7 +32,7 @@ with st.sidebar: #inputs
     customHAmpl = float(form.text_input("Chose an external field sweep amplitude", 0.1))
     etadamp = float(form.text_input('Damping like torque term coefficient', 0.104))
     etafield =  float(form.text_input('Field like torque term', -0.031))
-    je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))
+    je = float(form.text_input('Current density j_e [10^10 A/m^2]', 10))*1e10
     Js = float(form.text_input('Saturation magnetization Js [T]', 1.54))
     Keff = float(form.text_input('Effective anisotropy field HK_eff [T]', 0.052))#[J/m^3]1.5 * 9100))
     K1 = (Keff/(4 * 3.1415927 * 1e-7))*Js/2
@@ -54,7 +54,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "RAMR" : 0,
     "d" : d,    
     "frequency" : frequency,
-    "currentd" : je * 1e10,
+    "currentd" : je,
     "hbar" : 1.054571e-34,
     "e" : 1.602176634e-19,
     "mu0" : 4 * 3.1415927 * 1e-7,
@@ -67,7 +67,7 @@ Parameters = { #Convert to python class, but how to hash it? required for decora
     "area" : 10e-6 * 7e-9}
     
 paramters = Parameters
-n = 21
+n = 9
 phirange   = np.linspace(-np.pi/2, np.pi*3/2, num=n)
 signalw  = []
 signal2w  = []
@@ -76,6 +76,8 @@ timeEvolRx = []
 Hx,Hy,Hz = [[],[],[]]
 Mx,My,Mz = [[],[],[]]
 m_eqx, m_eqy, m_eqz = [[],[],[]]
+mdc_x, mdc_y, mdc_z = [[],[],[]]
+mdc_xm, mdc_ym, mdc_zm = [[],[],[]]
 aheList, amrList, smrList = [[],[],[]]
 fieldrangeT =[]
 phirangeRad=[]
@@ -90,9 +92,9 @@ def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
     if longitudinalSweep:
         name = "_HSweep"
         for i in fieldrange:
-            initm=[0,0,1]
+            initm=[0,0,1] 
             initm=np.array(initm)/np.linalg.norm(initm)
-            paramters["currentd"] = je * 1e10
+            paramters["currentd"] = je 
             if hextdir == "x":
                 paramters["hext"] = i*np.array([1,0,0])
             elif hextdir == "y":
@@ -111,11 +113,13 @@ def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
             
             print("Hex: ", paramters["hext"])
             R1w,R2w, t, mx,my,mz, tRx, hx,hy,hz = calc_w1andw2(m0_=initm,
-                                                                            t0_=0,
-                                                                            t1_=4/paramters["frequency"],
-                                                                            dt_=1/(timesteps * paramters["frequency"]),
-                                                                            params=paramters,customdir=customdir_)
+                                                               t0_=0,
+                                                               t1_=4/paramters["frequency"],
+                                                               dt_=1/(timesteps * paramters["frequency"]),
+                                                               params=paramters,customdir=customdir_)
             #Storing each current-induced field and magnetization state for each ext field value
+            #mdc = [[1],[1],[1]]
+            timedc, mdc = calc_equilibrium(initm, t0_=0, t1_=4/paramters["frequency"], dt_=1/(timesteps * paramters["frequency"]),paramters_=paramters)#, params=paramters)
             timeEvol.append(t)
             timeEvolRx.append(tRx)
             Hx.append(hx)
@@ -127,6 +131,9 @@ def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
             m_eqx.append(hx[-1])
             m_eqy.append(hy[-1])
             m_eqz.append(hz[-1])
+            mdc_x.append(mdc[0][-1]) 
+            mdc_y.append(mdc[1][-1])
+            mdc_z.append(mdc[2][-1])
             fieldrangeT.append(i * paramters["mu0"])
             signalw.append(R1w) 
             signal2w.append(R2w) 
@@ -136,12 +143,14 @@ def longSweep(t0_,t1_,dt_,params,hextdir, fieldrange, customdir_):
             _, imagList  = calc_equilibrium(m0_=initm,t0_=0,t1_=4/paramters["frequency"],dt_=1/(timesteps * paramters["frequency"]), paramters_=paramters)
             
             aheList.append(mz[-1]-imagList[2][-1])
-            amrList.append(mx[-1]*mx[-1])
-            smrList.append(my[-1]*my[-1])
-        
+            amrList.append(mx[-1]*imagList[0][-1])
+            smrList.append(my[-1]*imagList[1][-1])
+            mdc_xm.append(imagList[0][-1]) 
+            mdc_ym.append(imagList[1][-1])
+            mdc_zm.append(imagList[2][-1])
         #Live prompt
         #print(i, R1w, R2w, '\tHk,Hd', round(Hs[0]), round(Hs[1]), mx[-1], my[-1], mz[-1])
-        return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx
+        return timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx, mdc_x, mdc_y, mdc_z, mdc_xm, mdc_ym, mdc_zm
 signalw  = []
 signal2w  = []
 nsignal2w = []
@@ -155,7 +164,7 @@ aheList, amrList = [[],[]]
 fieldrangeT =[]
 phirangeRad=[]
 
-timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx = longSweep(t0_=0,
+timeEvol, Hx,Hy,Hz, Mx,My,Mz, m_eqx, m_eqy, m_eqz, fieldrangeT, signalw, signal2w, aheList, amrList, smrList, timeEvolRx, mdc_x, mdc_y, mdc_z, mdc_xm, mdc_ym, mdc_zm = longSweep(t0_=0,
                                                                             t1_=4/paramters["frequency"],
                                                                             dt_=1/(timesteps * paramters["frequency"]),
                                                                             params=paramters, 
@@ -168,7 +177,7 @@ if rotationalSweep:
     for h in fieldrange:
         ipMagnitude = hextamplitude          # 0.05/paramters["mu0"] # in Tesla
         for i in phirange:
-            paramters["currentd"] = je * 1e10
+            paramters["currentd"] = je 
             paramters["hext"] = np.array([ np.cos(i) * ipMagnitude , np.sin(i) * ipMagnitude , h]) 
             initm=[0,0,-1]
             initm=np.array(initm)/np.linalg.norm(initm)
@@ -190,15 +199,19 @@ if rotationalSweep:
     
 ##########################------Page-------#########################
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance", "Description"]) 
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Equilibrium magnetization", "Relaxation", "Voltage harmonics", "Anisotropic Magnetoresistance", "Spin Hall Magnetoresistance", "Description", "Test"]) 
 
 with tab1:
-    figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Equilibrium direction of m") #index denotes field sweep step
+    figmag = graphm(fieldrangeT, m_eqx, m_eqy, m_eqz, r'$\mu_0 H_ext$ (T)', r'$m_i$',  r"H_{\text{eff}} w/o SOT") #index denotes field sweep step
 ##plt.plot(fieldrangeT, lsignal2w, label = 'lock in r2w')
 ##plt.plot(fieldrangeT, fsignal2w, label = 'fft r2w')
 ##plt.plot(fieldrangeT, H,'r') 
 ##ax.set(xlabel=r'$\phi$ [grad]',ylabel = r'$m_{i}$ ') 
     st.pyplot(figmag)
+    figmagDCp = graphm(fieldrangeT, mdc_x, mdc_y, mdc_z, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Final state with (+) DC current")
+    st.pyplot(figmagDCp)
+    figmagDCm = graphm(fieldrangeT, mdc_xm, mdc_ym, mdc_zm, r'$\mu_0 H_ext$ (T)', r'$m_i$',  "Final state with (-) DC current")
+    st.pyplot(figmagDCm)
     st.write("It is important to highligh that by inducing an AC there is no an exact static point for equilibrium magnetization. However, when the system reaches equilibrium with respect to the AC current, the time averaged magnetization direction (check ref. [X] Phys. Rev. B 89, 144425 (2014)), is equivalent to relaxing the system without current applied")
 
 with tab2:
@@ -269,6 +282,11 @@ with tab6:
     #                      "Current induced fields at H_ext:" + str( round(selected_field*paramters["mu0"], 3) ) + "[T]")
     #
     #    st.pyplot(figfields)
+
+with tab7:
+    
+    st.write("here something")
+
 with open("llg_eqn.py") as f:
     lines = f.readlines()
 
