@@ -255,7 +255,7 @@ def calc_w1andw2(m0_,t0_,t1_,dt_,paramters_):
     nR2w           = 0#lockin( voltagexx/paramters_.currentd, magList[0][periSampl*3:], paramters_.frequency, 90)
 
 
-    #show_relaxation(mPlt=True,mdcPlt=False,DHPlt=False,mxhPlt=False,mxmxhPlt=False,rhsPlt=False)
+    show_relaxation(mPlt=True,mdcPlt=True,DHPlt=False,mxhPlt=False,mxmxhPlt=False,rhsPlt=False)
 
     return(R1w,R2w, mdc[-1,0], mdc[-1,1], mdc[-1,2], nR2w, lR2w, fR2w, R1wxx, R2wxx)
 
