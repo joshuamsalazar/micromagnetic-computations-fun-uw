@@ -31,7 +31,7 @@ with st.sidebar: #inputs
     form.form_submit_button("Submit and run model.")
     customHAmpl = form.number_input("Chose an external field sweep amplitude", 0.1)
     etadamp = float(form.number_input('Damping like torque term coefficient', 0.104))
-    etafield = form.number_input('Field like torque term', -0.031)
+    etafield =  float(form.number_input('Field like torque term', -0.031))
     je = form.number_input('Current density j_e [10^10 A/m^2]', 10)
     Js = form.number_input('Saturation magnetization Js [T]', 1.54)
     Keff = form.number_input('Effective anisotropy field HK_eff [T]', 0.052)#[J/m^3]1.5 * 9100))
